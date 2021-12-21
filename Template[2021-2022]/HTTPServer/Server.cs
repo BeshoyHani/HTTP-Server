@@ -76,6 +76,7 @@ namespace HTTPServer
                 {
                     // TODO: log exception using Logger class
                     Logger.LogException(ex);
+                    Console.WriteLine("Handle Connection");
                 }
             }
 
@@ -94,17 +95,20 @@ namespace HTTPServer
                 {
                     content = LoadDefaultPage(Configuration.BadRequestDefaultPageName);
                     response = new Response(HTTPServer.StatusCode.BadRequest, "text/html", content, "");
+                    return response;
 
                 }
                 //TODO: map the relativeURI in request to get the physical path of the resource.
+                request.relativeURI = request.relativeURI.Remove(0, 1);
                 string physPath = Path.Combine(Configuration.RootPath, request.relativeURI);
 
                 //TODO: check for redirect
-                if(Configuration.RedirectionRules.ContainsKey(physPath) == true)
+                if(Configuration.RedirectionRules.ContainsKey(request.relativeURI) == true)
                 {
                     content = LoadDefaultPage(Configuration.RedirectionDefaultPageName);
                     string redirectPath = GetRedirectionPagePathIFExist(request.relativeURI);
                     response = new Response(HTTPServer.StatusCode.Redirect, "text/html", content, redirectPath);
+                    return response;
                 }
 
                 //TODO: check file exists
@@ -114,21 +118,26 @@ namespace HTTPServer
                     response = new Response(HTTPServer.StatusCode.NotFound, "text/html", content, "");
                 }
 
-                //TODO: read the physical file
-                content = LoadDefaultPage(request.relativeURI);
+                else
+                {
+                    //TODO: read the physical file
+                    content = LoadDefaultPage(request.relativeURI);
 
-                // Create OK response
-                response = new Response(HTTPServer.StatusCode.OK, "text/html", content, "");
+                    // Create OK response
+                    response = new Response(HTTPServer.StatusCode.OK, "text/html", content, "");
+
+                }
             }
             catch (Exception ex)
             {
                 // TODO: log exception using Logger class
                 Logger.LogException(ex);
+                Console.WriteLine("Handle Request");
 
                 // TODO: in case of exception, return Internal Server Error.
                 content = LoadDefaultPage(Configuration.InternalErrorDefaultPageName);
                 response = new Response(HTTPServer.StatusCode.NotFound, "text/html", content, "");
-            }
+            }            
             return response;
         }
 
@@ -153,6 +162,7 @@ namespace HTTPServer
             }catch(Exception ex)
             {
                 Logger.LogException(ex);
+                Console.WriteLine("Load Default Page");
             }
 
             // else read file and return its content
@@ -165,10 +175,19 @@ namespace HTTPServer
             {
                 // TODO: using the filepath paramter read the redirection rules from file 
                 // then fill Configuration.RedirectionRules dictionary
+                string redirectionInfo = File.ReadAllText(filePath);
+                string[] redirectionRules = redirectionInfo.Split('\n');
+                Configuration.RedirectionRules = new Dictionary<string, string>();
+                foreach (string rule in redirectionRules)
+                {
+                    string[] splittedRule = rule.Split(',');
+                    Configuration.RedirectionRules.Add(splittedRule[0], splittedRule[1]);
+                }
             }
             catch (Exception ex)
             {
                 // TODO: log exception using Logger class
+                Logger.LogException(ex);
                 Environment.Exit(1);
             }
         }
