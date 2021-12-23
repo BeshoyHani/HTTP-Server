@@ -86,6 +86,7 @@ namespace HTTPServer
         {
             this.requestLines = contentLines[0].Split(' ');
             this.relativeURI = requestLines[1];
+            Console.WriteLine(requestLines[2]);
             return requestLines.Length == 3 && ValidateIsURI(this.requestLines[1]);
         }
 

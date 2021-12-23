@@ -45,7 +45,7 @@ namespace HTTPServer
             {
                 responseString += line + Environment.NewLine;
             }
-            responseString += content;
+            responseString += "\r\n" + content;
         }
 
         private string GetStatusLine(StatusCode code)
