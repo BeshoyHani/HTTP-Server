@@ -87,44 +87,42 @@ namespace HTTPServer
         Response HandleRequest(Request request)
         {
             Response response;
-            string content;
+            string redirectPath = "";
             try
             {
                 //TODO: check for bad request 
                 if (request.ParseRequest() == false)
                 {
-                    content = LoadDefaultPage(Configuration.BadRequestDefaultPageName);
-                    response = new Response(HTTPServer.StatusCode.BadRequest, "text/html", content, "");
+                    response = GetResponse(Configuration.BadRequestDefaultPageName,
+                                           HTTPServer.StatusCode.BadRequest, redirectPath,  request.getRequestMethod());
                     return response;
-
                 }
-                //TODO: map the relativeURI in request to get the physical path of the resource.
-                request.relativeURI = request.relativeURI.Remove(0, 1);
-                string physPath = Path.Combine(Configuration.RootPath, request.relativeURI);
 
                 //TODO: check for redirect
                 if(Configuration.RedirectionRules.ContainsKey(request.relativeURI) == true)
                 {
-                    content = LoadDefaultPage(Configuration.RedirectionDefaultPageName);
-                    string redirectPath = GetRedirectionPagePathIFExist(request.relativeURI);
-                    response = new Response(HTTPServer.StatusCode.Redirect, "text/html", content, redirectPath);
+                    redirectPath = GetRedirectionPagePathIFExist(request.relativeURI);
+                    response = GetResponse(Configuration.RedirectionDefaultPageName,
+                                          HTTPServer.StatusCode.Redirect, redirectPath, request.getRequestMethod());
                     return response;
                 }
+
+                //TODO: map the relativeURI in request to get the physical path of the resource.
+                string physPath = Path.Combine(Configuration.RootPath, request.relativeURI);
 
                 //TODO: check file exists
                 if (File.Exists(physPath) == false)
                 {
-                    content = LoadDefaultPage(Configuration.NotFoundDefaultPageName);
-                    response = new Response(HTTPServer.StatusCode.NotFound, "text/html", content, "");
+                    response = GetResponse(Configuration.NotFoundDefaultPageName,
+                                          HTTPServer.StatusCode.NotFound, redirectPath, request.getRequestMethod());
                 }
 
                 else
                 {
                     //TODO: read the physical file
-                    content = LoadDefaultPage(request.relativeURI);
-
                     // Create OK response
-                    response = new Response(HTTPServer.StatusCode.OK, "text/html", content, "");
+                    response = GetResponse(request.relativeURI,
+                                          HTTPServer.StatusCode.OK, redirectPath, request.getRequestMethod());
 
                 }
             }
@@ -132,11 +130,10 @@ namespace HTTPServer
             {
                 // TODO: log exception using Logger class
                 Logger.LogException(ex);
-                Console.WriteLine("Handle Request");
 
                 // TODO: in case of exception, return Internal Server Error.
-                content = LoadDefaultPage(Configuration.InternalErrorDefaultPageName);
-                response = new Response(HTTPServer.StatusCode.NotFound, "text/html", content, "");
+                response = GetResponse(Configuration.InternalErrorDefaultPageName,
+                                          HTTPServer.StatusCode.NotFound, redirectPath, request.getRequestMethod());
             }            
             return response;
         }
@@ -190,6 +187,16 @@ namespace HTTPServer
                 Logger.LogException(ex);
                 Environment.Exit(1);
             }
+        }
+
+        private Response GetResponse(string contentFileName, HTTPServer.StatusCode statusCode, string redirectPath, HTTPServer.RequestMethod method)
+        {
+            string content = "";
+            if(method != HTTPServer.RequestMethod.HEAD)
+                content = LoadDefaultPage(contentFileName);
+
+            Response response = new Response(statusCode, "text/html", content, redirectPath);
+            return response;
         }
     }
 }

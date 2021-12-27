@@ -30,30 +30,46 @@ namespace HTTPServer
         List<string> headerLines = new List<string>();
         public Response(StatusCode code, string contentType, string content, string redirectoinPath)
         {
-            //throw new NotImplementedException();
             // TODO: Add headlines (Content-Type, Content-Length,Date, [location if there is redirection])
             this.code = code;
-            this.headerLines.Add("Date: " + DateTime.Now.ToString());
-            this.headerLines.Add("Content-Type: " + contentType);
-            this.headerLines.Add("Content-Length: " + content.Length);
-            if (redirectoinPath.Length > 0)
-                this.headerLines.Add("Redirection-Path: " + redirectoinPath);
+            setHeaderLines(code, contentType, content.Length, redirectoinPath);
 
             // TODO: Create the request string
-            responseString = GetStatusLine(code) + Environment.NewLine;
-            foreach(string line in headerLines)
-            {
-                responseString += line + Environment.NewLine;
-            }
-            responseString += "\r\n" + content;
+            getResponseString(content);
+        }
+
+        private void setHeaderLines(StatusCode code, string contentType, int contentLength, string redirectoinPath)
+        {
+            List<string> headerLines = new List<string>();
+            headerLines.Add("Date: " + DateTime.Now.ToString());
+            headerLines.Add("Server: " + Configuration.ServerType);
+            headerLines.Add("Content-Type: " + contentType);
+            headerLines.Add("Content-Length: " + contentLength);
+            if (redirectoinPath.Length > 0)
+                headerLines.Add("Redirection-Path: " + redirectoinPath);
+
+            //Assign value to Class Member headerLines
+            this.headerLines = headerLines;
         }
 
         private string GetStatusLine(StatusCode code)
         {
             // TODO: Create the response status line and return it
-            
             string statusLine =Configuration.ServerHTTPVersion + ' ' + (int)code + ' ' + code;
             return statusLine;
+        }
+
+        private void getResponseString(string content)
+        {
+            //Get Status Line
+            this.responseString = GetStatusLine(code) + Environment.NewLine;
+
+            //Get Header Lines
+            foreach (string line in this.headerLines)
+            {
+                this.responseString += line + Environment.NewLine;
+            }
+            this.responseString += "\r\n" + content;
         }
     }
 }
