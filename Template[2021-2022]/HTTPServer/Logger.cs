@@ -20,7 +20,7 @@ namespace HTTPServer
 
             // for each exception write its details associated with datetime
             string text = message + '\t' + time.ToString();
-            File.AppendAllText("log2.txt", text + Environment.NewLine);
+            File.AppendAllText("log.txt", text + Environment.NewLine);
         }
     }
 }

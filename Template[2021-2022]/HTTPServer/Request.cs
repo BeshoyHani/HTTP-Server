@@ -34,6 +34,8 @@ namespace HTTPServer
         HTTPVersion httpVersion;
         string requestString;
         string[] contentLines;
+        string[] request;
+        XMLWriter xmlWriter;
 
         public Request(string requestString)
         {
@@ -52,24 +54,26 @@ namespace HTTPServer
         {
             //TODO: parse the receivedRequest using the \r\n delimeter
             bool isValid = true;
-            contentLines = new string[3];
+            request = new string[4];
 
             string[] stringSeparators = new string[] { "\r\n" }; // Separate by blank line
             string[] separatedContent = requestString.Split(stringSeparators, StringSplitOptions.None);
-            contentLines[0] = separatedContent[0]; //Request Line
+            request[0] = separatedContent[0]; //Request Line
             int i = 1;
             while (separatedContent[i] != "")//Header Lines
             {
-                contentLines[1] += separatedContent[i];
+                request[1] += separatedContent[i];
                 i++;
                 if (separatedContent[i] != "")
-                    contentLines[1] += "\r\n";
-            }            
-            contentLines[2] = separatedContent[i];
-
+                    request[1] += "\r\n";
+            }
+            request[2] = separatedContent[i]; //Blank Line
+            
+            if(i+1 < separatedContent.Length)
+                request[3] = separatedContent[++i]; //To skip empty line and get content
 
             // check that there is atleast 3 lines: Request line, Host Header, Blank line (usually 4 lines with the last empty line for empty content)
-            if(contentLines.Length < 3)
+            if(request.Length < 3)
             {
                 return false;
             }
@@ -83,19 +87,25 @@ namespace HTTPServer
             // Load header lines into HeaderLines dictionary
             isValid &= LoadHeaderLines();
 
+            if (isValid == true && method == HTTPServer.RequestMethod.POST)
+            {
+                //Console.WriteLine(request[3]);
+                GetContent();
+                SaveContent();
+            }
             return isValid;
         }
 
         private bool ParseRequestLine()
         {
-            this.requestLines = contentLines[0].Split(' ');
+            this.requestLines = request[0].Split(' ');
             //Set Request Line
             setRequestMethod(requestLines[0]);
             this.relativeURI = requestLines[1].Remove(0, 1); //Remove '/' before path
             setHttpVersion(requestLines[2]);
 
             //Validate Header Line
-            return requestLines.Length == 3 && ValidateIsURI(this.relativeURI);
+            return requestLines.Length >= 3 && ValidateIsURI(this.relativeURI);
         }
 
         private bool ValidateIsURI(string uri)
@@ -106,7 +116,7 @@ namespace HTTPServer
         private bool LoadHeaderLines()
         {
             string[] stringSeparators = new string[] { "\r\n" };
-            string []headerDate = contentLines[1].Split(stringSeparators, StringSplitOptions.None);
+            string []headerDate = request[1].Split(stringSeparators, StringSplitOptions.None);
 
             string[] headerSeparator = new string[] { ": " };
             this.headerLines = new Dictionary<string, string>();
@@ -120,7 +130,19 @@ namespace HTTPServer
 
         private bool ValidateBlankLine()
         {
-            return contentLines[2] == "";
+            return request[2] == "";
+        }
+
+        private void GetContent()
+        {
+            char[] stringSeparators = new char[] { '=', '&' };
+            contentLines = request[3].Split(stringSeparators, StringSplitOptions.None);
+        }
+
+        private void SaveContent()
+        {
+            xmlWriter = new XMLWriter(contentLines);
+            xmlWriter.Save();
         }
 
         private void setHttpVersion(string version)

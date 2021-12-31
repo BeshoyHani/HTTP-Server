@@ -119,9 +119,17 @@ namespace HTTPServer
 
                 else
                 {
+                    string relativeURI = request.relativeURI;
+
+                    //TODO: check if POST Request
+                    if(request.getRequestMethod() == HTTPServer.RequestMethod.POST)
+                    {
+                        relativeURI = Configuration.ThankYouPageName;
+                    }
+
                     //TODO: read the physical file
                     // Create OK response
-                    response = GetResponse(request.relativeURI,
+                    response = GetResponse(relativeURI,
                                           HTTPServer.StatusCode.OK, redirectPath, request.getRequestMethod());
 
                 }
@@ -194,7 +202,8 @@ namespace HTTPServer
             string content = "";
             if(method != HTTPServer.RequestMethod.HEAD)
                 content = LoadDefaultPage(contentFileName);
-
+            
+            
             Response response = new Response(statusCode, "text/html", content, redirectPath);
             return response;
         }
